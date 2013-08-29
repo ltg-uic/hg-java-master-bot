@@ -1,4 +1,4 @@
-package ltg.foraging.model;
+package ltg.hg.model;
 
 import java.util.ArrayList;
 import java.util.List;

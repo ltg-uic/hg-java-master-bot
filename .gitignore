@@ -1,3 +1,4 @@
+# Eclipse
 *.pydevproject
 .project
 .metadata
@@ -25,8 +26,7 @@ local.properties
 # PDT-specific
 .buildpath
 
+
 # Maven
-/target
-
-
+target/
 dependency-reduced-pom.xml

@@ -1,4 +1,4 @@
-package ltg.foraging.model;
+package ltg.hg.model;
 
 public class RFIDTag {
 
