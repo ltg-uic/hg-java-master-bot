@@ -12,8 +12,11 @@ public class FoodPatch {
 	public final String risk_label;
 	public final double risk;
 	
-	// Calculated attributes
+	// Physical attributes
 	private List<String> tags_id_currently_at_patch = null;
+	
+	// Calculated model attributes
+	private double current_yield = -1.0d;
 	
 	
 	public FoodPatch(String id, String richness_label, int richness, String risk_label, double risk) {

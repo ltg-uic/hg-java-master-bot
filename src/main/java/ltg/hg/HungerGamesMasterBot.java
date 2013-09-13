@@ -73,7 +73,7 @@ public class HungerGamesMasterBot {
 						e.getPayload().get("departure").textValue(), 
 						e.getPayload().get("arrival").textValue()
 						);
-//				saveInDB(hg.updateStats())
+				saveInDB(hg.serializeStatsToJSON());
 			}
 		});
 		
@@ -141,6 +141,12 @@ public class HungerGamesMasterBot {
 			System.exit(0);
 		}
 		hg = new HungerGamesModel(roster, patchesConfiguration);
+	}
+	
+	
+	private void saveInDB(Object updateStats) {
+		// TODO Auto-generated method stub
+		
 	}
 	
 	// ------------------

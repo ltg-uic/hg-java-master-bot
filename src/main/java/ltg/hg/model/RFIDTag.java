@@ -8,10 +8,16 @@ public class RFIDTag {
 	public final String color;
 	public final String color_label;
 	
-	// Calculated attrbutes
+	// Physical attributes
 	private String current_location_id = null;
+	
+	// Calculated model attributes
 	private int current_rate = 0;
-	private int current_score = 0;
+	private int current_calories = 0;
+	private double average_richness = 0;
+	private double average_competition = 0;
+	private double total_moves = 0;
+	private double yield = 0;
 	private boolean is_alive = true;
 	private int remaining_penalyt_time = -1;
 	
@@ -34,8 +40,8 @@ public class RFIDTag {
 	}
 
 
-	public synchronized int getCurrent_score() {
-		return current_score;
+	public synchronized int getCurrentCalories() {
+		return current_calories;
 	}
 
 
@@ -47,31 +53,6 @@ public class RFIDTag {
 	public synchronized int getRemaining_penalyt_time() {
 		return remaining_penalyt_time;
 	}
-
-
-	public synchronized void setCurrent_location(String current_location) {
-		this.current_location_id = current_location;
-	}
-
-
-	public synchronized void setCurrent_rate(int current_rate) {
-		this.current_rate = current_rate;
-	}
-
-
-	public synchronized void setCurrent_score(int current_score) {
-		this.current_score = current_score;
-	}
-
-
-	public synchronized void setIs_alive(boolean is_alive) {
-		this.is_alive = is_alive;
-	}
-
-
-	public synchronized void setRemaining_penalyt_time(int remaining_penalyt_time) {
-		this.remaining_penalyt_time = remaining_penalyt_time;
-	}
 	
 	
 	@Override
@@ -82,6 +63,15 @@ public class RFIDTag {
 			)
 			return true;
 		return false;
+	}
+
+
+	public void setCurrentLocation(String patch) {
+		this.current_location_id = patch;
+	}
+	
+	public void resetCurrentLocation() {
+		this.current_location_id = null;
 	}
 	
 	
