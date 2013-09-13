@@ -6,18 +6,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ForagingGame {
+public class HungerGamesModel {
 	
 	private String filename = null;
 	private Map<String, RFIDTag> tags = null;
 	private Map<String, FoodPatch> patches = null;
 	public int penaltySec = -1;
 	
-	public ForagingGame() {
+	public HungerGamesModel() {
 	}
 	
 	
-	public ForagingGame(String file) {
+	public HungerGamesModel(String file) {
 		this.filename = file; 
 	}
 	

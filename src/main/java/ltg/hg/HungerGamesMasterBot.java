@@ -3,36 +3,63 @@
  */
 package ltg.hg;
 
+import static spark.Spark.get;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+
+import ltg.commons.SimpleRESTClient;
 import ltg.commons.ltg_handler.LTGEvent;
 import ltg.commons.ltg_handler.LTGEventHandler;
 import ltg.commons.ltg_handler.LTGEventListener;
+import ltg.hg.model.HungerGamesModel;
+import spark.Request;
+import spark.Response;
+import spark.Route;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.mongodb.DB;
+import com.mongodb.MongoClient;
 
 /**
  * @author gugo
  *
  */
-public class HungerGamesMasterAgent {
+public class HungerGamesMasterBot {
 	
-	private LTGEventHandler eh = null;	
-	// Foraging game instance
-	//private ForagingGame fg = new ForagingGame();
+	private SimpleRESTClient src = new SimpleRESTClient();
+	private LTGEventHandler eh = null;
+	private DB db = null;	
+	private HungerGamesModel hg = null;
 	
 	
 
-	public HungerGamesMasterAgent(String usernameAndPass, String chatAndDBId) {
+	public HungerGamesMasterBot(String usernameAndPass, String groupChatID, String mongoDBId) {
 		 
-        // -------------------
-        // Init network and DB
-        // -------------------
-        eh =  new LTGEventHandler(usernameAndPass+"@ltg.evl.uic.edu", usernameAndPass, chatAndDBId+"@conference.ltg.evl.uic.edu");
-//        try {
-//            db = new MongoClient("54.243.60.48").getDB(chatAndDBId).getCollection("notes");
-//        } catch (UnknownHostException e1) {
-//            System.err.println("Impossible to connect to MongoDB");
-//            System.exit(0);
-//        }
- 
- 
+        // ---------------------------------------
+        // Init event handler and connect to Mongo
+        // ---------------------------------------
+        eh =  new LTGEventHandler(usernameAndPass+"@ltg.evl.uic.edu", usernameAndPass, groupChatID+"@conference.ltg.evl.uic.edu");
+        try {
+            db = new MongoClient("localhost").getDB(mongoDBId);
+        } catch (UnknownHostException e) {
+            System.err.println("Impossible to connect to MongoDB, terminating...");
+            System.exit(0);
+        }
+        
+        
+        // -----------------------------------
+        // Fetch the roster and init the model
+        // -----------------------------------
+        JsonNode roster = null;
+        try {
+			roster = src.get("http://ltg.evl.uic.edu:9000/runs/period-1");
+			System.out.println(roster.toString());
+		} catch (IOException e) {
+			System.err.println("Impossible to fetch students roster");
+		}
+        
+        
         // -----------------
         //Register listeners
         // -----------------
@@ -82,25 +109,32 @@ public class HungerGamesMasterAgent {
         // ------------------
         // Run event listener
         // ------------------
-        eh.runSynchronously();
+        eh.runAsynchronously();
     }
 	
 	
 	/**
+	 * MAIN
      * @param args
      */
     public static void main(String[] args) {
-        if (args.length != 2 || nullOrEmpty(args[0]) || nullOrEmpty(args[1])) {
-            System.out.println("Need to specify the username/password (eg. master-bot) and chatroom/DB_ID (eg. test-room). Terminating...");
+        if (args.length != 3 || args[0]==null || args[0].isEmpty() || args[1]==null || args[1].isEmpty() || args[2]==null || args[2].isEmpty() ) {
+            System.out.println("Need to specify the username/password (eg. master-bot), chatroom ID (eg. test-room) and MongoDB ID. Terminating...");
             System.exit(0);
         }
-        new HungerGamesMasterAgent(args[0], args[1]);         
+        new HungerGamesMasterBot(args[0], args[1], args[2]);      
+        
+        // -----------------------
+        // REST portion of the bot
+        // -----------------------
+        get(new Route("/") {
+            @Override
+            public Object handle(Request request, Response response) {
+               return "Welcome to the Hunger Games Master Agent!";
+            }
+         });
     }
      
-    public static boolean nullOrEmpty(String s) {
-        return (s==null || s=="");
-    }
-	
 
 
     
@@ -147,6 +181,7 @@ public class HungerGamesMasterAgent {
 //				sendTeacherDisplayInitInfo(json);
 //			} else if (isPenaltyBoxInit(json)) {
 //				sendPenaltyBoxInitInfo(json);
+    
 //			} else if (isScoreUpdate(json)) {
 //				updateScore(json);
 //			} else if (isLocationUpdate(json)) {
