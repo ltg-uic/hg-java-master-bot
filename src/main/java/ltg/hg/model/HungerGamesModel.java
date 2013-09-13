@@ -6,9 +6,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.mongodb.BasicDBObject;
+
 public class HungerGamesModel {
 	
-	private String filename = null;
 	private Map<String, RFIDTag> tags = null;
 	private Map<String, FoodPatch> patches = null;
 	public int penaltySec = -1;
@@ -16,11 +18,9 @@ public class HungerGamesModel {
 	public HungerGamesModel() {
 	}
 	
-	
-	public HungerGamesModel(String file) {
-		this.filename = file; 
+	public HungerGamesModel(ArrayNode roster, BasicDBObject patchesConfiguration) {
+		resetGame(roster, patchesConfiguration);
 	}
-	
 	
 	public FoodPatch getPatch(String patchId) {
 		return patches.get(patchId);
@@ -88,13 +88,14 @@ public class HungerGamesModel {
 	}
 	
 	
+	public synchronized void resetGame(ArrayNode roster, BasicDBObject patchesConfiguration) {
+		
+	}
+	
 	public synchronized void resetGame() {
 		System.out.println("Resetting game...");
 		tags = new HashMap<String, RFIDTag>();
 		patches = new HashMap<String, FoodPatch>();
-		if (filename!=null) {
-			// Read everything from the file
-		} else {
 			// Hard-coded initialization. YIKES!!!
 			penaltySec = 30;
 			
@@ -129,7 +130,6 @@ public class HungerGamesModel {
 			tags.put("1623115", new RFIDTag("1623115", "d", "#edac52", penaltySec)); //Orangy
 			tags.put("1623373", new RFIDTag("1623373", "d", "#99896f", penaltySec)); //Gray-ish
 			
-		}
 	}
 
 
