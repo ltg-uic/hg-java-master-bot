@@ -32,11 +32,12 @@ public class HungerGamesMasterBot {
 	private LTGEventHandler eh = null;
 	private DB db = null;
 	
+	private String run_id = null;
 	private HungerGamesModel hg = null;
  
 
 	public HungerGamesMasterBot(String usernameAndPass, String groupChatID, String mongoDBId, String run_id) {
-
+		
 		// ---------------------------------------
 		// Init event handler and connect to Mongo
 		// ---------------------------------------
@@ -52,18 +53,8 @@ public class HungerGamesMasterBot {
 		// ------------------------------------------------------
 		// Fetch the roster, the configuration and init the model
 		// ------------------------------------------------------
-		ArrayNode roster = null;
-		BasicDBObject patchesConfiguration = null;
-		try {
-			roster = (ArrayNode) src.get("http://ltg.evl.uic.edu:9000/runs/"+run_id).get("data").get("roster");
-			patchesConfiguration = (BasicDBObject) db.getCollection("configuration").findOne(new BasicDBObject("run_id", run_id));
-			if (roster.size()==0 || patchesConfiguration==null)
-				throw new IOException();
-		} catch (IOException e) {
-			System.err.println("Impossible to fetch roster and/or configuration, terminating...");
-			System.exit(0);
-		}
-		hg = new HungerGamesModel(roster, patchesConfiguration);
+		this.run_id = run_id;
+		resetModel();
 
 		
 		// ----------------------------
@@ -71,25 +62,30 @@ public class HungerGamesMasterBot {
 		// ----------------------------
 		eh.registerHandler("reset_game", new LTGEventListener() {
 			public void processEvent(LTGEvent e) {
-				hg.resetGame();
-			}
-		});
-
-		eh.registerHandler("stop", new LTGEventListener() {
-			public void processEvent(LTGEvent e) {
-				// storeObservation(e.getOrigin(), e.getPayload());
-			}
-		});
-
-		eh.registerHandler("reset", new LTGEventListener() {
-			public void processEvent(LTGEvent e) {
-				// storeObservation(e.getOrigin(), e.getPayload());
+				resetModel();
 			}
 		});
 
 		eh.registerHandler("rfid_update", new LTGEventListener() {
 			public void processEvent(LTGEvent e) {
-				// deleteObservation(e.getOrigin(), e.getPayload());
+				hg.updateTagLocation(
+						e.getPayload().get("id").textValue(), 
+						e.getPayload().get("departure").textValue(), 
+						e.getPayload().get("arrival").textValue()
+						);
+//				saveInDB(hg.updateStats())
+			}
+		});
+		
+		eh.registerHandler("start_bout", new LTGEventListener() {
+			public void processEvent(LTGEvent e) {
+				// TODO implement
+			}
+		});
+
+		eh.registerHandler("stop_bout", new LTGEventListener() {
+			public void processEvent(LTGEvent e) {
+				// TODO implement
 			}
 		});
 
@@ -132,6 +128,21 @@ public class HungerGamesMasterBot {
 	}
 
 
+	private void resetModel() {
+		ArrayNode roster = null;
+		BasicDBObject patchesConfiguration = null;
+		try {
+			roster = (ArrayNode) src.get("http://ltg.evl.uic.edu:9000/runs/"+run_id).get("data").get("roster");
+			patchesConfiguration = (BasicDBObject) db.getCollection("configuration").findOne(new BasicDBObject("run_id", run_id));
+			if (roster.size()==0 || patchesConfiguration==null)
+				throw new IOException();
+		} catch (IOException e) {
+			System.err.println("Impossible to fetch roster and/or configuration, terminating...");
+			System.exit(0);
+		}
+		hg = new HungerGamesModel(roster, patchesConfiguration);
+	}
+	
 	// ------------------
 	// Old code
 	// ------------------
