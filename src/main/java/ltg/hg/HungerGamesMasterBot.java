@@ -21,23 +21,29 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoException;
 
 /**
  * @author gugo
  *
  */
 public class HungerGamesMasterBot {
-	
+
+	// Software components
 	private SimpleRESTClient src = new SimpleRESTClient();
 	private LTGEventHandler eh = null;
 	private DB db = null;
-	
+
+	// Model data
 	private String run_id = null;
+	private String current_habitat_configuration = null;
+	private String current_bout_id = null;
+	private String current_state = null;
 	private HungerGamesModel hg = null;
- 
+
 
 	public HungerGamesMasterBot(String usernameAndPass, String groupChatID, String mongoDBId, String run_id) {
-		
+
 		// ---------------------------------------
 		// Init event handler and connect to Mongo
 		// ---------------------------------------
@@ -54,15 +60,15 @@ public class HungerGamesMasterBot {
 		// Fetch the roster, the configuration and init the model
 		// ------------------------------------------------------
 		this.run_id = run_id;
-		resetModel();
+		initializeModelAndState();
 
-		
+
 		// ----------------------------
 		//Register XMPP event listeners
 		// ----------------------------
 		eh.registerHandler("reset_game", new LTGEventListener() {
 			public void processEvent(LTGEvent e) {
-				resetModel();
+				resetHGModel();
 			}
 		});
 
@@ -73,10 +79,10 @@ public class HungerGamesMasterBot {
 						e.getPayload().get("departure").textValue(), 
 						e.getPayload().get("arrival").textValue()
 						);
-				saveInDB(hg.serializeStatsToJSON());
+				saveStatsInDB(hg.serializeStatsToJSON());
 			}
 		});
-		
+
 		eh.registerHandler("start_bout", new LTGEventListener() {
 			public void processEvent(LTGEvent e) {
 				// TODO implement
@@ -108,8 +114,55 @@ public class HungerGamesMasterBot {
 	}
 
 
+
+
+	private void initializeModelAndState() {
+		resetHGModel();
+		loadStateFromDB();
+	}
+	
+	
+	private void resetHGModel() {
+		ArrayNode roster = null;
+		BasicDBObject patchesConfiguration = null;
+		try {
+			roster = (ArrayNode) src.get("http://ltg.evl.uic.edu:9000/runs/"+run_id).get("data").get("roster");
+			patchesConfiguration = (BasicDBObject) db.getCollection("configuration").findOne(new BasicDBObject("run_id", run_id));
+			if (roster.size()==0 || patchesConfiguration==null)
+				throw new IOException();
+		} catch (Exception e) {
+			System.err.println("Impossible to fetch roster and/or configuration, terminating...");
+			System.exit(0);
+		}
+		hg = new HungerGamesModel(roster, patchesConfiguration);
+	}
+
+	private void loadStateFromDB() {
+		BasicDBObject state = (BasicDBObject) db.getCollection("state").findOne(new BasicDBObject("run_id", run_id)).get("state");
+		this.current_habitat_configuration = state.getString("current_habitat_configuration");
+		this.current_bout_id = state.getString("current_bout_id");
+		this.current_state = state.getString("current_state");
+	}
+	
+	// TODO needs to be tested!
+	private void saveState() {
+		BasicDBObject tmp_state = new BasicDBObject()
+			.append("current_habitat_configuration", current_habitat_configuration)
+			.append("current_bout_id", current_bout_id)
+			.append("cucurrent_state", current_state);
+		db.getCollection("state").update(new BasicDBObject("run_id", run_id), 
+				new BasicDBObject("run_id", run_id).append("state", tmp_state) );
+	}
+
+	private void saveStatsInDB(Object updateStats) {
+		// TODO Auto-generated method stub
+	}
+	
+	
+	
+	
 	/**
-	 * MAIN
+	 * MAIN Parses CLI arguments and launches an instance of the master bot
 	 * @param args
 	 */
 	public static void main(String[] args) {
@@ -127,27 +180,23 @@ public class HungerGamesMasterBot {
 		new HungerGamesMasterBot(args[0], args[1], args[2], args[3]);      
 	}
 
-
-	private void resetModel() {
-		ArrayNode roster = null;
-		BasicDBObject patchesConfiguration = null;
-		try {
-			roster = (ArrayNode) src.get("http://ltg.evl.uic.edu:9000/runs/"+run_id).get("data").get("roster");
-			patchesConfiguration = (BasicDBObject) db.getCollection("configuration").findOne(new BasicDBObject("run_id", run_id));
-			if (roster.size()==0 || patchesConfiguration==null)
-				throw new IOException();
-		} catch (IOException e) {
-			System.err.println("Impossible to fetch roster and/or configuration, terminating...");
-			System.exit(0);
-		}
-		hg = new HungerGamesModel(roster, patchesConfiguration);
-	}
 	
 	
-	private void saveInDB(Object updateStats) {
-		// TODO Auto-generated method stub
-		
-	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	// ------------------
 	// Old code
