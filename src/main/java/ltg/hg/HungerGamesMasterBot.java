@@ -18,10 +18,10 @@ import spark.Response;
 import spark.Route;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
-import com.mongodb.MongoException;
 
 /**
  * @author gugo
@@ -79,7 +79,8 @@ public class HungerGamesMasterBot {
 						e.getPayload().get("departure").textValue(), 
 						e.getPayload().get("arrival").textValue()
 						);
-				saveStatsInDB(hg.serializeStatsToJSON());
+				if (current_state.equals("foraging")) 
+					saveStatsInDB(hg.updateAggregateStatistics());
 			}
 		});
 
@@ -120,8 +121,8 @@ public class HungerGamesMasterBot {
 		resetHGModel();
 		loadStateFromDB();
 	}
-	
-	
+
+
 	private void resetHGModel() {
 		ArrayNode roster = null;
 		BasicDBObject patchesConfiguration = null;
@@ -143,24 +144,49 @@ public class HungerGamesMasterBot {
 		this.current_bout_id = state.getString("current_bout_id");
 		this.current_state = state.getString("current_state");
 	}
-	
+
 	// TODO needs to be tested!
 	private void saveState() {
 		BasicDBObject tmp_state = new BasicDBObject()
-			.append("current_habitat_configuration", current_habitat_configuration)
-			.append("current_bout_id", current_bout_id)
-			.append("cucurrent_state", current_state);
+		.append("current_habitat_configuration", current_habitat_configuration)
+		.append("current_bout_id", current_bout_id)
+		.append("cucurrent_state", current_state);
 		db.getCollection("state").update(new BasicDBObject("run_id", run_id), 
 				new BasicDBObject("run_id", run_id).append("state", tmp_state) );
 	}
 
 	private void saveStatsInDB(Object updateStats) {
-		// TODO Auto-generated method stub
+		BasicDBObject bout_stats = new BasicDBObject("bout_length", 423);
+		
+		BasicDBList user_stats = new BasicDBList();
+		BasicDBObject us = new BasicDBObject()
+		.append("name", "JUR")
+		.append("total_calories", 1234.4)
+		.append("avg_richness", 2.0)
+		.append("avg_competition", 3.5)
+		.append("total_moves", 11)
+		.append("yield", 2.3)
+		.append("avg_risk", 3.4);
+		user_stats.add(us);
+		
+		BasicDBObject stats = new BasicDBObject()
+		.append("run_id", run_id)
+		.append("habitat_configuration", current_habitat_configuration)
+		.append("bout_id", current_bout_id)
+		.append("bout_stats", bout_stats)
+		.append("user_stats", user_stats);
+		
+		//Store in MongoDB
+		BasicDBObject query = new BasicDBObject()
+				.append("run_id", run_id)
+				.append("habitat_configuration", current_habitat_configuration)
+				.append("bout_id", current_bout_id);
+		db.getCollection("statistics").update( query, stats );
 	}
-	
-	
-	
-	
+
+
+
+
 	/**
 	 * MAIN Parses CLI arguments and launches an instance of the master bot
 	 * @param args
@@ -180,24 +206,24 @@ public class HungerGamesMasterBot {
 		new HungerGamesMasterBot(args[0], args[1], args[2], args[3]);      
 	}
 
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	// ------------------
 	// Old code
 	// ------------------

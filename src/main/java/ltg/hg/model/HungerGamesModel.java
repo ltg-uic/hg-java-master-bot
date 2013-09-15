@@ -85,12 +85,15 @@ public class HungerGamesModel {
 	private void updateCalculatedParameters(String tag, String d, String a) {
 		// TODO Auto-generated method stub
 	}
-
-
-	public synchronized BasicDBObject serializeStatsToJSON() {
+	
+	
+	public BasicDBObject updateAggregateStatistics() {
 		// TODO Auto-generated method stub
+		//System.out.println("Updating summative stats");
 		return null;
 	}
+
+	
 
 
 	//	public FoodPatch getPatch(String patchId) {
