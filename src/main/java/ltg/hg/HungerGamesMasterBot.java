@@ -3,8 +3,6 @@
  */
 package ltg.hg;
 
-import static spark.Spark.get;
-
 import java.io.IOException;
 import java.net.UnknownHostException;
 
@@ -13,9 +11,6 @@ import ltg.commons.ltg_handler.LTGEvent;
 import ltg.commons.ltg_handler.LTGEventHandler;
 import ltg.commons.ltg_handler.LTGEventListener;
 import ltg.hg.model.HungerGamesModel;
-import spark.Request;
-import spark.Response;
-import spark.Route;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.mongodb.BasicDBList;
@@ -36,9 +31,6 @@ public class HungerGamesMasterBot {
 
 	// Model data
 	private String run_id = null;
-	private String current_habitat_configuration = null;
-	private String current_bout_id = null;
-	private String current_state = null;
 	private HungerGamesModel hg = null;
 
 
@@ -66,12 +58,6 @@ public class HungerGamesMasterBot {
 		// ----------------------------
 		//Register XMPP event listeners
 		// ----------------------------
-		eh.registerHandler("reset_game", new LTGEventListener() {
-			public void processEvent(LTGEvent e) {
-				resetHGModel();
-			}
-		});
-
 		eh.registerHandler("rfid_update", new LTGEventListener() {
 			public void processEvent(LTGEvent e) {
 				hg.updateTagLocation(
@@ -79,31 +65,31 @@ public class HungerGamesMasterBot {
 						e.getPayload().get("departure").textValue(), 
 						e.getPayload().get("arrival").textValue()
 						);
-				if (current_state.equals("foraging")) 
-					saveStatsInDB(hg.updateAggregateStatistics());
 			}
 		});
 
 		eh.registerHandler("start_bout", new LTGEventListener() {
 			public void processEvent(LTGEvent e) {
-				// TODO implement
+				hg.setFullState(
+						e.getPayload().get("habitat_configuration_id").textValue(),
+						e.getPayload().get("bout_id").textValue(),
+						"foraging"
+						);
+				saveState();
 			}
 		});
 
 		eh.registerHandler("stop_bout", new LTGEventListener() {
 			public void processEvent(LTGEvent e) {
-				// TODO implement
+				hg.setCurrent_state("completed");
+				saveState();
 			}
 		});
-
-
-		// --------------------
-		// Register REST routes
-		// --------------------
-		get(new Route("/") {
-			@Override
-			public Object handle(Request request, Response response) {
-				return "Welcome to the Hunger Games Master Bot!";
+		
+		
+		eh.registerHandler("reset_bout", new LTGEventListener() {
+			public void processEvent(LTGEvent e) {
+				resetHGModel();
 			}
 		});
 
@@ -111,7 +97,7 @@ public class HungerGamesMasterBot {
 		// -------------------------
 		// Start XMPP event listener
 		// -------------------------
-		eh.runAsynchronously();
+		eh.runSynchronously();
 	}
 
 
@@ -119,7 +105,7 @@ public class HungerGamesMasterBot {
 
 	private void initializeModelAndState() {
 		resetHGModel();
-		loadStateFromDB();
+		loadState();
 	}
 
 
@@ -138,19 +124,18 @@ public class HungerGamesMasterBot {
 		hg = new HungerGamesModel(roster, patchesConfiguration);
 	}
 
-	private void loadStateFromDB() {
+	private void loadState() {
 		BasicDBObject state = (BasicDBObject) db.getCollection("state").findOne(new BasicDBObject("run_id", run_id)).get("state");
-		this.current_habitat_configuration = state.getString("current_habitat_configuration");
-		this.current_bout_id = state.getString("current_bout_id");
-		this.current_state = state.getString("current_state");
+		hg.setCurrent_habitat_configuration(state.getString("current_habitat_configuration"));
+		hg.setCurrent_bout_id(state.getString("current_bout_id"));
+		hg.setCurrent_state(state.getString("current_state"));
 	}
 
-	// TODO needs to be tested!
 	private void saveState() {
 		BasicDBObject tmp_state = new BasicDBObject()
-		.append("current_habitat_configuration", current_habitat_configuration)
-		.append("current_bout_id", current_bout_id)
-		.append("cucurrent_state", current_state);
+		.append("current_habitat_configuration", hg.getCurrent_habitat_configuration())
+		.append("current_bout_id", hg.getCurrent_bout_id())
+		.append("cucurrent_state", hg.getCurrent_state());
 		db.getCollection("state").update(new BasicDBObject("run_id", run_id), 
 				new BasicDBObject("run_id", run_id).append("state", tmp_state) );
 	}
@@ -171,16 +156,16 @@ public class HungerGamesMasterBot {
 		
 		BasicDBObject stats = new BasicDBObject()
 		.append("run_id", run_id)
-		.append("habitat_configuration", current_habitat_configuration)
-		.append("bout_id", current_bout_id)
+		.append("habitat_configuration", hg.getCurrent_habitat_configuration())
+		.append("bout_id", hg.getCurrent_bout_id())
 		.append("bout_stats", bout_stats)
 		.append("user_stats", user_stats);
 		
 		//Store in MongoDB
 		BasicDBObject query = new BasicDBObject()
 				.append("run_id", run_id)
-				.append("habitat_configuration", current_habitat_configuration)
-				.append("bout_id", current_bout_id);
+				.append("habitat_configuration", hg.getCurrent_habitat_configuration())
+				.append("bout_id", hg.getCurrent_bout_id());
 		db.getCollection("statistics").update( query, stats );
 	}
 

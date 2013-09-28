@@ -2,7 +2,7 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>ltg</groupId>
-	<version>1.1-alpha</version>
+	<version>0.1.0</version>
 	<name>Hunger Games backend logic</name>
 
 	<properties>
@@ -35,7 +35,7 @@
 							<transformers>
 								<transformer
 									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-									<mainClass>ltg.hg.HungerGamesMasterAgent</mainClass>
+									<mainClass>ltg.hg.HungerGamesMasterBot</mainClass>
 								</transformer>
 							</transformers>
 						</configuration>
@@ -50,22 +50,12 @@
 		<dependency>
 			<groupId>ltg</groupId>
 			<artifactId>ltg-java-event-handler</artifactId>
-			<version>1.4.1</version>
-		</dependency>
-		<dependency>
-			<groupId>com.sparkjava</groupId>
-			<artifactId>spark-core</artifactId>
-			<version>1.1</version>
+			<version>1.5</version>
 		</dependency>
 		<dependency>
 			<groupId>com.google.http-client</groupId>
 			<artifactId>google-http-client</artifactId>
 			<version>1.17.0-rc</version>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-jdk14</artifactId>
-			<version>1.7.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.mongodb</groupId>

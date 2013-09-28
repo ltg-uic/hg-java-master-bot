@@ -2,6 +2,7 @@ package ltg.hg.model;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -10,23 +11,29 @@ import com.mongodb.BasicDBObject;
 
 public class HungerGamesModel {
 
+	// Model
 	private Map<String, RFIDTag> tags = null;
 	private Map<String, FoodPatch> patches = null;
-
-	private String current_configuration = null;
-	private String current_bout = null;
+	// State
+	private String current_habitat_configuration = null;
+	private String current_bout_id = null;
+	private String current_state = null;
+	// Updater thread (component)
+	private static final int UPDATE_CYCLE_IN_SECONDS = 1;
+	private final HGModelUpdated modelUpdater = new HGModelUpdated("HGModelUpdater");
 
 
 	public HungerGamesModel(ArrayNode roster, BasicDBObject patchesConfiguration) {
 		resetGame(roster, patchesConfiguration);
+		modelUpdater.start();
 	}
 
-	// TODO need to finish to implement this!!
 	private synchronized void resetGame(ArrayNode roster, BasicDBObject patchesConfiguration) {
+		// Initialized tags and patches with JSON coming from DB
 		tags = new HashMap<String, RFIDTag>();
 		patches = new HashMap<String, FoodPatch>();
 		for (JsonNode tag: roster)
-			tags.put(tag.get("rfid_tag").textValue(), new RFIDTag(
+			tags.put(tag.get("_id").textValue(), new RFIDTag(
 					tag.get("_id").textValue(), 
 					tag.get("rfid_tag").textValue(), 
 					tag.get("color").textValue(), 
@@ -35,25 +42,65 @@ public class HungerGamesModel {
 		for (Object patch: (BasicDBList) patchesConfiguration.get("patches")) 
 			patches.put(((BasicDBObject) patch).getString("patch_id"), new FoodPatch(
 					((BasicDBObject) patch).getString("patch_id"), 
-					((BasicDBObject) patch).getString("richness"), 
-					((BasicDBObject) patch).getInt("richness_per_second"), 
-					null, 	//((BasicDBObject) patch).getString("risk_label")	 
-					0.0d	//((BasicDBObject) patch).getDouble("risk")
+					((BasicDBObject) patch).getString("quality"), 
+					((BasicDBObject) patch).getInt("quality_per_second"), 
+					((BasicDBObject) patch).getString("risk_label"), 
+					((BasicDBObject) patch).getDouble("risk_percent_per_second")
 					));
 	}
 
 
+	////////////////////
+	// Updater thread //
+	////////////////////
+
+	private final class HGModelUpdated extends Thread {
+		/**
+		 * Private constructor: only the outer class can instantiate 
+		 * the updater.
+		 * @param thread name
+		 */
+		private HGModelUpdated(String id) {
+			super(id);
+		}
+
+		/**
+		 * Updates cumulative stats while foraging
+		 */
+		public void run() {
+			while(Thread.currentThread().isInterrupted()) {
+				if (current_state=="foraging")
+					updateAggregateStatistics();
+				try {
+					sleep(UPDATE_CYCLE_IN_SECONDS*1000);
+				} catch (InterruptedException e) {
+					break;
+				}
+			}
+		}
+
+	}
 	
+	
+	private synchronized BasicDBObject updateAggregateStatistics() {
+		// TODO Auto-generated method stub
+		System.out.println("Updating summative stats " + new Random());
+		return null;
+	}
+
+
+	//////////////
+	// Handlers //
+	//////////////
+
 	/**
-	 * This function has two crucial parts. In the first part we simply record the effect of the movement
-	 * into the data structures while in the second part we actually perform a refresh of all the stats
-	 * for patches and tags.
+	 * This function updates the tags location and updates all the parameters
+	 * 
 	 * @param tag 
 	 * @param departure
 	 * @param arrival
 	 */
 	public synchronized void updateTagLocation(String tag, String departure, String arrival) {
-		// Update the physical parameters
 		if (departure!=null) {
 			resetTagLocation(tag);
 			removeTagFromPatch(tag, departure);
@@ -62,8 +109,6 @@ public class HungerGamesModel {
 			setTagLocation(tag, arrival);
 			addTagToPatch(tag, arrival);
 		}
-		// Update the model parameters
-		updateCalculatedParameters(tag, departure, arrival);
 	}
 
 	private synchronized void addTagToPatch(String tag, String patch) {
@@ -80,20 +125,69 @@ public class HungerGamesModel {
 
 	private synchronized void resetTagLocation(String tag) {
 		tags.get(tag).setCurrentLocation(null);
-	}
-
-	private void updateCalculatedParameters(String tag, String d, String a) {
-		// TODO Auto-generated method stub
-	}
-	
-	
-	public BasicDBObject updateAggregateStatistics() {
-		// TODO Auto-generated method stub
-		//System.out.println("Updating summative stats");
-		return null;
-	}
+	}	
 
 	
+	/////////////////////
+	// Utility methods //
+	/////////////////////
+
+	public synchronized double getTagCurrentYield(String tag) {
+		return patches.get(tags.get(tag).getCurrentLocation()).getCurrentYield();
+	}
+
+
+	////////////////////////
+	// Getters and setters /
+	////////////////////////
+
+	public synchronized Map<String, RFIDTag> getTags() {
+		return tags;
+	}
+
+	public synchronized Map<String, FoodPatch> getPatches() {
+		return patches;
+	}
+
+	public synchronized String getCurrent_habitat_configuration() {
+		return current_habitat_configuration;
+	}
+
+	public synchronized String getCurrent_bout_id() {
+		return current_bout_id;
+	}
+
+	public synchronized String getCurrent_state() {
+		return current_state;
+	}
+	
+	public synchronized void setFullState(String habitat_configuration, String bout_id, String state) {
+		setCurrent_habitat_configuration(habitat_configuration);
+		setCurrent_bout_id(bout_id);
+		setCurrent_state(state);
+	}
+
+	public synchronized void setTags(Map<String, RFIDTag> tags) {
+		this.tags = tags;
+	}
+
+	public synchronized void setPatches(Map<String, FoodPatch> patches) {
+		this.patches = patches;
+	}
+
+	public synchronized void setCurrent_habitat_configuration(
+			String current_habitat_configuration) {
+		this.current_habitat_configuration = current_habitat_configuration;
+	}
+
+	public synchronized void setCurrent_bout_id(String current_bout_id) {
+		this.current_bout_id = current_bout_id;
+	}
+
+	public synchronized void setCurrent_state(String current_state) {
+		this.current_state = current_state;
+	}
+
 
 
 	//	public FoodPatch getPatch(String patchId) {

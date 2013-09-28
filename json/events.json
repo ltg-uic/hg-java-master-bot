@@ -1,0 +1,37 @@
+{
+    "event": "start_bout",
+    "payload": {
+        "habitat_configuration_id": "gameon",
+        "bout_id": "1"
+    }
+}
+
+{
+    "event": "start_bout",
+    "payload": {
+        "habitat_configuration_id": "predation",
+        "bout_id": "1"
+    }
+}
+
+{
+    "event": "stop_bout",
+    "payload": {}
+}
+
+
+{
+    "event": "reset_bout",
+    "payload": {
+        "habitat_configuration_id": "gameon",
+        "bout_id": "1"
+    }
+}
+
+{
+    "event": "reset_bout",
+    "payload": {
+        "habitat_configuration_id": "predation",
+        "bout_id": "1"
+    }
+}

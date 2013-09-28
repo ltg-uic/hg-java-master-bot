@@ -6,23 +6,21 @@ import java.util.List;
 public class FoodPatch {
 	
 	// Assigned attributes
-	public final String id;
-	public final String richness_label;
-	public final int richness_per_second;
-	public final String risk_label;
-	public final double risk;
+	private final double richness_per_second;
+	private final double risk;
+	// unused so far
+	protected final String id;
+	protected final String richness_label;
+	protected final String risk_label;
 	
-	// Physical attributes
+	// Instantaneous attributes
 	private List<String> tags_id_currently_at_patch = null;
-	
-	// Calculated model attributes
-	private double current_yield = -1.0d;
 	
 	
 	public FoodPatch(String id, String richness_label, int richness, String risk_label, double risk) {
 		this.id = id;
 		this.richness_label = richness_label;
-		this.richness_per_second = richness;
+		this.richness_per_second = (double) richness;
 		this.risk_label = risk_label;
 		this.risk = risk;
 		this.tags_id_currently_at_patch = new ArrayList<String>();
@@ -36,6 +34,16 @@ public class FoodPatch {
 	
 	public synchronized void removeTagFromPatch(String tag) {
 		tags_id_currently_at_patch.remove(tag);
+	}
+	
+	
+	public synchronized double getCurrentYield() {
+		return richness_per_second / ((double) tags_id_currently_at_patch.size() ); 
+	}
+	
+	
+	public synchronized double getRisk() {
+		return risk;
 	}
 
 }
