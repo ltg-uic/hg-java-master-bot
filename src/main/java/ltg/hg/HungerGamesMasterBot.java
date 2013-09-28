@@ -5,6 +5,9 @@ package ltg.hg;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.Observable;
+import java.util.Observer;
+import java.util.Random;
 
 import ltg.commons.SimpleRESTClient;
 import ltg.commons.ltg_handler.LTGEvent;
@@ -22,8 +25,7 @@ import com.mongodb.MongoClient;
  * @author gugo
  *
  */
-public class HungerGamesMasterBot {
-
+public class HungerGamesMasterBot implements Observer {
 	// Software components
 	private SimpleRESTClient src = new SimpleRESTClient();
 	private LTGEventHandler eh = null;
@@ -70,18 +72,14 @@ public class HungerGamesMasterBot {
 
 		eh.registerHandler("start_bout", new LTGEventListener() {
 			public void processEvent(LTGEvent e) {
-				hg.setFullState(
-						e.getPayload().get("habitat_configuration_id").textValue(),
-						e.getPayload().get("bout_id").textValue(),
-						"foraging"
-						);
+				hg.setCurrentState("foraging");
 				saveState();
 			}
 		});
 
 		eh.registerHandler("stop_bout", new LTGEventListener() {
 			public void processEvent(LTGEvent e) {
-				hg.setCurrent_state("completed");
+				hg.setCurrentState("completed");
 				saveState();
 			}
 		});
@@ -90,6 +88,12 @@ public class HungerGamesMasterBot {
 		eh.registerHandler("reset_bout", new LTGEventListener() {
 			public void processEvent(LTGEvent e) {
 				resetHGModel();
+				hg.setFullState(
+						e.getPayload().get("habitat_configuration_id").textValue(),
+						e.getPayload().get("bout_id").textValue(),
+						"ready"
+						);
+				saveState();
 			}
 		});
 
@@ -99,8 +103,15 @@ public class HungerGamesMasterBot {
 		// -------------------------
 		eh.runSynchronously();
 	}
-
-
+	
+	
+	@Override
+	public void update(Observable o, Object arg) {
+		// TODO Auto-generated method stub
+		//saveStatsInDB(hg.getStats());
+		System.out.println("Updating summative stats " + hg.getCurrentBoutId() + " " + new Random());
+		// Send out kill messages
+	}
 
 
 	private void initializeModelAndState() {
@@ -110,6 +121,10 @@ public class HungerGamesMasterBot {
 
 
 	private void resetHGModel() {
+		if (hg!=null) {
+			hg.clean();
+			hg.deleteObservers();
+		}
 		ArrayNode roster = null;
 		BasicDBObject patchesConfiguration = null;
 		try {
@@ -122,20 +137,23 @@ public class HungerGamesMasterBot {
 			System.exit(0);
 		}
 		hg = new HungerGamesModel(roster, patchesConfiguration);
+		hg.addObserver(this);
 	}
 
 	private void loadState() {
 		BasicDBObject state = (BasicDBObject) db.getCollection("state").findOne(new BasicDBObject("run_id", run_id)).get("state");
-		hg.setCurrent_habitat_configuration(state.getString("current_habitat_configuration"));
-		hg.setCurrent_bout_id(state.getString("current_bout_id"));
-		hg.setCurrent_state(state.getString("current_state"));
+		hg.setFullState(
+				state.getString("current_habitat_configuration"), 
+				state.getString("current_bout_id"), 
+				state.getString("current_state")
+				);
 	}
 
 	private void saveState() {
 		BasicDBObject tmp_state = new BasicDBObject()
-		.append("current_habitat_configuration", hg.getCurrent_habitat_configuration())
-		.append("current_bout_id", hg.getCurrent_bout_id())
-		.append("cucurrent_state", hg.getCurrent_state());
+		.append("current_habitat_configuration", hg.getCurrentHabitatConfiguration())
+		.append("current_bout_id", hg.getCurrentBoutId())
+		.append("current_state", hg.getCurrentState());
 		db.getCollection("state").update(new BasicDBObject("run_id", run_id), 
 				new BasicDBObject("run_id", run_id).append("state", tmp_state) );
 	}
@@ -156,16 +174,16 @@ public class HungerGamesMasterBot {
 		
 		BasicDBObject stats = new BasicDBObject()
 		.append("run_id", run_id)
-		.append("habitat_configuration", hg.getCurrent_habitat_configuration())
-		.append("bout_id", hg.getCurrent_bout_id())
+		.append("habitat_configuration", hg.getCurrentHabitatConfiguration())
+		.append("bout_id", hg.getCurrentBoutId())
 		.append("bout_stats", bout_stats)
 		.append("user_stats", user_stats);
 		
 		//Store in MongoDB
 		BasicDBObject query = new BasicDBObject()
 				.append("run_id", run_id)
-				.append("habitat_configuration", hg.getCurrent_habitat_configuration())
-				.append("bout_id", hg.getCurrent_bout_id());
+				.append("habitat_configuration", hg.getCurrentHabitatConfiguration())
+				.append("bout_id", hg.getCurrentBoutId());
 		db.getCollection("statistics").update( query, stats );
 	}
 

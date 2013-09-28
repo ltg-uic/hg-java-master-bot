@@ -2,14 +2,14 @@ package ltg.hg.model;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
+import java.util.Observable;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 
-public class HungerGamesModel {
+public class HungerGamesModel extends Observable {
 
 	// Model
 	private Map<String, RFIDTag> tags = null;
@@ -22,6 +22,10 @@ public class HungerGamesModel {
 	private static final int UPDATE_CYCLE_IN_SECONDS = 1;
 	private final HGModelUpdated modelUpdater = new HGModelUpdated("HGModelUpdater");
 
+	
+	/////////////////
+	// Constructor //
+	/////////////////
 
 	public HungerGamesModel(ArrayNode roster, BasicDBObject patchesConfiguration) {
 		resetGame(roster, patchesConfiguration);
@@ -55,22 +59,20 @@ public class HungerGamesModel {
 	////////////////////
 
 	private final class HGModelUpdated extends Thread {
-		/**
-		 * Private constructor: only the outer class can instantiate 
-		 * the updater.
-		 * @param thread name
-		 */
+		// Private constructor: only the outer class can instantiate the updater 
 		private HGModelUpdated(String id) {
 			super(id);
 		}
 
-		/**
-		 * Updates cumulative stats while foraging
-		 */
+		// Updates the simulation and the stats while foraging 
+		// and notifies the master agent
 		public void run() {
-			while(Thread.currentThread().isInterrupted()) {
-				if (current_state=="foraging")
+			while(!modelUpdater.isInterrupted()) {
+				if ( getCurrentState()!=null && getCurrentState().equals("foraging") ) {
 					updateAggregateStatistics();
+					HungerGamesModel.this.setChanged();
+					HungerGamesModel.this.notifyObservers();
+				}
 				try {
 					sleep(UPDATE_CYCLE_IN_SECONDS*1000);
 				} catch (InterruptedException e) {
@@ -81,10 +83,8 @@ public class HungerGamesModel {
 
 	}
 	
-	
 	private synchronized BasicDBObject updateAggregateStatistics() {
 		// TODO Auto-generated method stub
-		System.out.println("Updating summative stats " + new Random());
 		return null;
 	}
 
@@ -93,13 +93,6 @@ public class HungerGamesModel {
 	// Handlers //
 	//////////////
 
-	/**
-	 * This function updates the tags location and updates all the parameters
-	 * 
-	 * @param tag 
-	 * @param departure
-	 * @param arrival
-	 */
 	public synchronized void updateTagLocation(String tag, String departure, String arrival) {
 		if (departure!=null) {
 			resetTagLocation(tag);
@@ -126,6 +119,10 @@ public class HungerGamesModel {
 	private synchronized void resetTagLocation(String tag) {
 		tags.get(tag).setCurrentLocation(null);
 	}	
+	
+	public synchronized void clean() {
+		modelUpdater.interrupt();
+	}
 
 	
 	/////////////////////
@@ -149,42 +146,34 @@ public class HungerGamesModel {
 		return patches;
 	}
 
-	public synchronized String getCurrent_habitat_configuration() {
+	public synchronized String getCurrentHabitatConfiguration() {
 		return current_habitat_configuration;
 	}
 
-	public synchronized String getCurrent_bout_id() {
+	public synchronized String getCurrentBoutId() {
 		return current_bout_id;
 	}
 
-	public synchronized String getCurrent_state() {
+	public synchronized String getCurrentState() {
 		return current_state;
 	}
 	
 	public synchronized void setFullState(String habitat_configuration, String bout_id, String state) {
-		setCurrent_habitat_configuration(habitat_configuration);
-		setCurrent_bout_id(bout_id);
-		setCurrent_state(state);
+		setCurrentHabitatConfiguration(habitat_configuration);
+		setCurrentBoutId(bout_id);
+		setCurrentState(state);
 	}
 
-	public synchronized void setTags(Map<String, RFIDTag> tags) {
-		this.tags = tags;
-	}
-
-	public synchronized void setPatches(Map<String, FoodPatch> patches) {
-		this.patches = patches;
-	}
-
-	public synchronized void setCurrent_habitat_configuration(
+	public synchronized void setCurrentHabitatConfiguration (
 			String current_habitat_configuration) {
 		this.current_habitat_configuration = current_habitat_configuration;
 	}
 
-	public synchronized void setCurrent_bout_id(String current_bout_id) {
+	public synchronized void setCurrentBoutId(String current_bout_id) {
 		this.current_bout_id = current_bout_id;
 	}
 
-	public synchronized void setCurrent_state(String current_state) {
+	public synchronized void setCurrentState(String current_state) {
 		this.current_state = current_state;
 	}
 

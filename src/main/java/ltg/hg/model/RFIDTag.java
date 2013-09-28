@@ -16,10 +16,10 @@ public class RFIDTag {
 	// Aggregate attributes
 	private int harvest = -1;
 	private double avg_quality = -1.0d;
-	private double average_richness = -1.0d;
 	private double average_competition = -1.0d;
 	private double total_moves = -1.0d;
 	private double arbitrage = -1.0d;
+	private double average_risk = -1.0d;
 	
 	
 	
