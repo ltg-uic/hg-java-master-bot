@@ -14,6 +14,7 @@ public class HungerGamesModel extends Observable {
 	// Model
 	private Map<String, RFIDTag> tags = null;
 	private Map<String, FoodPatch> patches = null;
+	private double bout_length_in_seconds = 0;
 	// State
 	private String current_habitat_configuration = null;
 	private String current_bout_id = null;
@@ -84,7 +85,7 @@ public class HungerGamesModel extends Observable {
 	}
 	
 	private synchronized BasicDBObject updateAggregateStatistics() {
-		// TODO Auto-generated method stub
+		//bout_length_in_seconds
 		return null;
 	}
 
@@ -94,14 +95,22 @@ public class HungerGamesModel extends Observable {
 	//////////////
 
 	public synchronized void updateTagLocation(String tag, String departure, String arrival) {
+		double my_current_yield = -1.0d;
+		double my_displayed_future_yield = -1.0d;
+		double my_actual_future_yield = -1.0d;
 		if (departure!=null) {
+			my_current_yield = getCurrentYieldForTag(tag);
 			resetTagLocation(tag);
 			removeTagFromPatch(tag, departure);
 		}
 		if (arrival!=null) {
+			my_displayed_future_yield = patches.get(arrival).getCurrentYield();
 			setTagLocation(tag, arrival);
 			addTagToPatch(tag, arrival);
+			my_actual_future_yield = getCurrentYieldForTag(tag);
 		}
+		if ( departure!=null && arrival!=null && getCurrentState()!=null && getCurrentState().equals("foraging") )
+			increasePerMoveAggregateAttributes(tag, my_current_yield, my_displayed_future_yield, my_actual_future_yield);
 	}
 
 	private synchronized void addTagToPatch(String tag, String patch) {
@@ -118,7 +127,12 @@ public class HungerGamesModel extends Observable {
 
 	private synchronized void resetTagLocation(String tag) {
 		tags.get(tag).setCurrentLocation(null);
-	}	
+	}
+	
+	private synchronized void increasePerMoveAggregateAttributes(String tag, double my_current_yield, double my_displayed_future_yield, double my_actual_future_yield) {
+		tags.get(tag).increaseTotalMovesCounter();	
+		tags.get(tag).updateArbitrage(my_current_yield, my_displayed_future_yield, my_actual_future_yield);
+	}
 	
 	public synchronized void clean() {
 		modelUpdater.interrupt();
@@ -129,10 +143,22 @@ public class HungerGamesModel extends Observable {
 	// Utility methods //
 	/////////////////////
 
-	public synchronized double getTagCurrentYield(String tag) {
+	public synchronized double getCurrentQualityForTag(String tag) {
+		return patches.get(tags.get(tag).getCurrentLocation()).getQuality();
+	}
+	
+	public synchronized double getCurrentCompetitionForTag(String tag) {
+		return patches.get(tags.get(tag).getCurrentLocation()).getCurrentCompetition();
+	}
+	
+	public synchronized double getCurrentYieldForTag(String tag) {
 		return patches.get(tags.get(tag).getCurrentLocation()).getCurrentYield();
 	}
-
+	
+	public synchronized double getCurrentRiskForTag(String tag) {
+		return patches.get(tags.get(tag).getCurrentLocation()).getRisk();
+	}
+	
 
 	////////////////////////
 	// Getters and setters /

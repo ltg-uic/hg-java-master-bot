@@ -14,12 +14,14 @@ public class RFIDTag {
 	private int remaining_penalyt_time = -1;
 	
 	// Aggregate attributes
-	private int harvest = -1;
+	private int harvest = 0;
+	// per-move attributes
+	private int total_moves = 0;
+	private int arbitrage = 0;
+	// weighted averages
 	private double avg_quality = -1.0d;
-	private double average_competition = -1.0d;
-	private double total_moves = -1.0d;
-	private double arbitrage = -1.0d;
-	private double average_risk = -1.0d;
+	private double avg_competition = -1.0d;
+	private double avg_risk = -1.0d; 
 	
 	
 	
@@ -56,8 +58,29 @@ public class RFIDTag {
 	}
 	
 	
-	
-	
-	
+	public synchronized void increaseTotalMovesCounter() {
+		this.total_moves++;
+	}
 
+
+	public synchronized void updateArbitrage(double my_current_yield, double my_displayed_future_yield, double my_actual_future_yield) {
+		double perceivedGain = my_displayed_future_yield - my_current_yield;
+		double realGain = my_actual_future_yield - my_current_yield;
+		if (perceivedGain < realGain )
+			System.err.println("This can't be possible unless there is something very wrong in the code");
+		
+		if ( perceivedGain < 0 && realGain < 0 )
+			arbitrage--;
+		else if ( perceivedGain == 0 && realGain == 0 )
+			arbitrage--;
+		else if ( perceivedGain > 0 && realGain == 0 )
+			; // Arbitrage stays the same
+		else if ( perceivedGain > 0 && realGain < 0 )
+			; // Arbitrage stays the same
+		else if ( perceivedGain > 0 && realGain > 0 )
+			arbitrage++;
+		else
+			System.err.println("This can't be possible unless there is something very wrong in the code");
+	}
+	
 }

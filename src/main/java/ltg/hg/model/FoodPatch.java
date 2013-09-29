@@ -6,11 +6,11 @@ import java.util.List;
 public class FoodPatch {
 	
 	// Assigned attributes
-	private final double richness_per_second;
+	private final double qulity_per_second;
 	private final double risk;
 	// unused so far
 	protected final String id;
-	protected final String richness_label;
+	protected final String quality_label;
 	protected final String risk_label;
 	
 	// Instantaneous attributes
@@ -19,8 +19,8 @@ public class FoodPatch {
 	
 	public FoodPatch(String id, String richness_label, int richness, String risk_label, double risk) {
 		this.id = id;
-		this.richness_label = richness_label;
-		this.richness_per_second = (double) richness;
+		this.quality_label = richness_label;
+		this.qulity_per_second = (double) richness;
 		this.risk_label = risk_label;
 		this.risk = risk;
 		this.tags_id_currently_at_patch = new ArrayList<String>();
@@ -37,8 +37,17 @@ public class FoodPatch {
 	}
 	
 	
+	public synchronized double getQuality() {
+		return qulity_per_second;
+	}
+
+
+	public synchronized double getCurrentCompetition() {
+		return ((double) tags_id_currently_at_patch.size() );
+	}
+	
 	public synchronized double getCurrentYield() {
-		return richness_per_second / ((double) tags_id_currently_at_patch.size() ); 
+		return qulity_per_second / ((double) tags_id_currently_at_patch.size() ); 
 	}
 	
 	
