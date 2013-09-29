@@ -14,6 +14,7 @@ public class HungerGamesModel extends Observable {
 	// Model
 	private Map<String, RFIDTag> tags = null;
 	private Map<String, FoodPatch> patches = null;
+	private double predation_penalty_length_in_seconds = -1;
 	private double bout_length_in_seconds = 0;
 	// State
 	private String current_habitat_configuration = null;
@@ -23,7 +24,7 @@ public class HungerGamesModel extends Observable {
 	private static final int UPDATE_CYCLE_IN_SECONDS = 1;
 	private final HGModelUpdated modelUpdater = new HGModelUpdated("HGModelUpdater");
 
-	
+
 	/////////////////
 	// Constructor //
 	/////////////////
@@ -52,6 +53,8 @@ public class HungerGamesModel extends Observable {
 					((BasicDBObject) patch).getString("risk_label"), 
 					((BasicDBObject) patch).getDouble("risk_percent_per_second")
 					));
+		predation_penalty_length_in_seconds = patchesConfiguration.getInt("predation_penalty_length_in_seconds");
+		
 	}
 
 
@@ -71,6 +74,8 @@ public class HungerGamesModel extends Observable {
 			while(!modelUpdater.isInterrupted()) {
 				if ( getCurrentState()!=null && getCurrentState().equals("foraging") ) {
 					updateAggregateStatistics();
+					if (getCurrentHabitatConfiguration()!= null && getCurrentHabitatConfiguration().equals("predation"))
+						killTags();
 					HungerGamesModel.this.setChanged();
 					HungerGamesModel.this.notifyObservers();
 				}
@@ -81,12 +86,21 @@ public class HungerGamesModel extends Observable {
 				}
 			}
 		}
+	}
 
+	private synchronized void updateAggregateStatistics() {
+		bout_length_in_seconds += UPDATE_CYCLE_IN_SECONDS;
+		for (String tag: tags.keySet()) {
+			tags.get(tag).updateHarvest(getCurrentYieldForTag(tag) * UPDATE_CYCLE_IN_SECONDS);
+			tags.get(tag).updateAverageQuality(bout_length_in_seconds, UPDATE_CYCLE_IN_SECONDS, getCurrentQualityForTag(tag));
+			tags.get(tag).updateAverageCompetition(bout_length_in_seconds, UPDATE_CYCLE_IN_SECONDS, getCurrentCompetitionForTag(tag));
+			//tags.get(tag).updateAverageRisk(bout_length_in_seconds, UPDATE_CYCLE_IN_SECONDS, getCurrentRiskForTag(tag));
+		}	
 	}
 	
-	private synchronized BasicDBObject updateAggregateStatistics() {
-		//bout_length_in_seconds
-		return null;
+	private synchronized void killTags() {
+		// TODO Auto-generated method stub
+		//predation_penalty_length_in_seconds;
 	}
 
 
@@ -128,17 +142,17 @@ public class HungerGamesModel extends Observable {
 	private synchronized void resetTagLocation(String tag) {
 		tags.get(tag).setCurrentLocation(null);
 	}
-	
+
 	private synchronized void increasePerMoveAggregateAttributes(String tag, double my_current_yield, double my_displayed_future_yield, double my_actual_future_yield) {
 		tags.get(tag).increaseTotalMovesCounter();	
 		tags.get(tag).updateArbitrage(my_current_yield, my_displayed_future_yield, my_actual_future_yield);
 	}
-	
+
 	public synchronized void clean() {
 		modelUpdater.interrupt();
 	}
 
-	
+
 	/////////////////////
 	// Utility methods //
 	/////////////////////
@@ -146,19 +160,19 @@ public class HungerGamesModel extends Observable {
 	public synchronized double getCurrentQualityForTag(String tag) {
 		return patches.get(tags.get(tag).getCurrentLocation()).getQuality();
 	}
-	
+
 	public synchronized double getCurrentCompetitionForTag(String tag) {
 		return patches.get(tags.get(tag).getCurrentLocation()).getCurrentCompetition();
 	}
-	
+
 	public synchronized double getCurrentYieldForTag(String tag) {
 		return patches.get(tags.get(tag).getCurrentLocation()).getCurrentYield();
 	}
-	
+
 	public synchronized double getCurrentRiskForTag(String tag) {
 		return patches.get(tags.get(tag).getCurrentLocation()).getRisk();
 	}
-	
+
 
 	////////////////////////
 	// Getters and setters /
@@ -183,7 +197,7 @@ public class HungerGamesModel extends Observable {
 	public synchronized String getCurrentState() {
 		return current_state;
 	}
-	
+
 	public synchronized void setFullState(String habitat_configuration, String bout_id, String state) {
 		setCurrentHabitatConfiguration(habitat_configuration);
 		setCurrentBoutId(bout_id);
@@ -201,6 +215,28 @@ public class HungerGamesModel extends Observable {
 
 	public synchronized void setCurrentState(String current_state) {
 		this.current_state = current_state;
+	}
+
+	public synchronized BasicDBObject getStats() {
+		BasicDBObject bout_stats = new BasicDBObject("bout_length", bout_length_in_seconds);
+
+		BasicDBList user_stats = new BasicDBList();
+		for (String tag: tags.keySet() ) {
+			BasicDBObject user = new BasicDBObject("name", tag)
+			.append("harvest", tags.get(tag).getHarvest())
+			.append("avg_quality", tags.get(tag).getAvgQuality())
+			.append("avg_competition", tags.get(tag).getAvgCompetition())
+			.append("total_moves", tags.get(tag).getTotalMoves())
+			.append("arbitrage", tags.get(tag).getArbitrage())
+			.append("avg_risk", tags.get(tag).getAvgRisk());
+			user_stats.add(user);
+		}
+
+		BasicDBObject stats = new BasicDBObject()
+		.append("bout_stats", bout_stats)
+		.append("user_stats", user_stats);
+
+		return stats;
 	}
 
 
