@@ -14,8 +14,8 @@ public class HungerGamesModel extends Observable {
 	// Model
 	private Map<String, RFIDTag> tags = null;
 	private Map<String, FoodPatch> patches = null;
-	private double predation_penalty_length_in_seconds = -1;
-	private double bout_length_in_seconds = 0;
+	private double predation_penalty_length_in_seconds = -1.0d;
+	private double bout_length_in_seconds = 0.0d;
 	// State
 	private String current_habitat_configuration = null;
 	private String current_bout_id = null;
@@ -158,19 +158,23 @@ public class HungerGamesModel extends Observable {
 	/////////////////////
 
 	public synchronized double getCurrentQualityForTag(String tag) {
-		return patches.get(tags.get(tag).getCurrentLocation()).getQuality();
+		String currentPatch = tags.get(tag).getCurrentLocation();
+		return currentPatch==null ? 0 : patches.get(currentPatch).getQuality();
 	}
 
 	public synchronized double getCurrentCompetitionForTag(String tag) {
-		return patches.get(tags.get(tag).getCurrentLocation()).getCurrentCompetition();
+		String currentPatch = tags.get(tag).getCurrentLocation();
+		return currentPatch==null ? 0 : patches.get(currentPatch).getCurrentCompetition();
 	}
 
 	public synchronized double getCurrentYieldForTag(String tag) {
-		return patches.get(tags.get(tag).getCurrentLocation()).getCurrentYield();
+		String currentPatch = tags.get(tag).getCurrentLocation();
+		return currentPatch==null ? 0 : patches.get(currentPatch).getCurrentYield();
 	}
 
 	public synchronized double getCurrentRiskForTag(String tag) {
-		return patches.get(tags.get(tag).getCurrentLocation()).getRisk();
+		String currentPatch = tags.get(tag).getCurrentLocation();
+		return currentPatch==null ? 0 : patches.get(currentPatch).getRisk();
 	}
 
 

@@ -108,7 +108,7 @@ public class HungerGamesMasterBot implements Observer {
 	public void update(Observable o, Object arg) {
 		// TODO Auto-generated method stub
 		saveStatsInDB(hg.getStats());
-		System.out.println("Updating summative stats " + hg.getCurrentBoutId() + " " + new Random());
+		//System.out.println("Updated summative stats " + hg.getStats().toString());
 		// Send out kill messages
 	}
 
@@ -165,7 +165,7 @@ public class HungerGamesMasterBot implements Observer {
 				.append("run_id", run_id)
 				.append("habitat_configuration", hg.getCurrentHabitatConfiguration())
 				.append("bout_id", hg.getCurrentBoutId());
-		db.getCollection("statistics").update( query, stats );
+		db.getCollection("statistics").update(query, stats, true, false);
 	}
 
 

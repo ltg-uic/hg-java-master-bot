@@ -14,7 +14,7 @@ public class RFIDTag {
 	private double remaining_penalyt_time = -1;
 	
 	// Aggregate attributes
-	private double harvest = 0;
+	private double harvest = 0.0d;
 	// per-move attributes
 	private int total_moves = 0;
 	private int arbitrage = 0;
@@ -71,16 +71,18 @@ public class RFIDTag {
 		
 		if ( perceivedGain < 0 && realGain < 0 )
 			arbitrage--;
-		else if ( perceivedGain == 0 && realGain == 0 )
+		else if ( perceivedGain == 0 && realGain < 0 )
 			arbitrage--;
 		else if ( perceivedGain > 0 && realGain == 0 )
 			; // Arbitrage stays the same
 		else if ( perceivedGain > 0 && realGain < 0 )
 			; // Arbitrage stays the same
+		else if ( perceivedGain == 0 && realGain == 0 )
+			; // Arbitrage stays the same
 		else if ( perceivedGain > 0 && realGain > 0 )
 			arbitrage++;
 		else
-			System.err.println("This can't be possible unless there is something very wrong in the code");
+			System.err.println("Unconsidered option. Perceived gain: " + perceivedGain + " Real gain: " + realGain);
 	}
 	
 	
