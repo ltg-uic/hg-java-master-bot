@@ -101,8 +101,9 @@ public class HungerGamesMasterBot implements Observer {
 
 
 		// -------------------------
-		// Start XMPP event listener
+		// Start the event listener
 		// -------------------------
+		System.out.println("Hunger Games Master Bot started...");
 		eh.runSynchronously();
 	}
 	
