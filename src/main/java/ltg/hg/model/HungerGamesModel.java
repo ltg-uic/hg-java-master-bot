@@ -261,7 +261,7 @@ public class HungerGamesModel extends Observable {
 		for (String tag: tags.keySet() ) {
 			BasicDBObject user = new BasicDBObject("name", tag)
 			.append("harvest", tags.get(tag).getHarvest())
-			.append("avg_quality", tags.get(tag).getAvgQuality())
+			.append("avg_quality", tags.get(tag).getAvgQualityPerMinute())
 			.append("avg_competition", tags.get(tag).getAvgCompetition())
 			.append("total_moves", tags.get(tag).getTotalMoves())
 			.append("arbitrage", tags.get(tag).getArbitrage())

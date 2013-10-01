@@ -92,7 +92,7 @@ public class RFIDTag {
 	
 	
 	public synchronized void updateAverageQuality(double totalTime, double step, double currentQuality) {
-		avg_quality = movingAverage(avg_quality, currentQuality, totalTime, step) * 60.0d;
+		avg_quality = movingAverage(avg_quality, currentQuality, totalTime, step);
 	}
 	
 	
@@ -116,8 +116,12 @@ public class RFIDTag {
 	}
 
 
-	public double getAvgQuality() {
+	public double getAvgQualityPerSecond() {
 		return avg_quality;
+	}
+	
+	public double getAvgQualityPerMinute() {
+		return avg_quality * 60.0d;
 	}
 
 
