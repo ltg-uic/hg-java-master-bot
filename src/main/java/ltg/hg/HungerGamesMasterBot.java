@@ -117,6 +117,8 @@ public class HungerGamesMasterBot implements Observer {
 
 
 	private void sendNotifications(Map<String, List<String>> notifications) {
+		if (notifications.get("victims")==null || notifications.get("victims")==null )
+			return;
 		for (String v: notifications.get("victims"))
 			sendKillTagEvent(v);
 		for (String r: notifications.get("resurrections"))
