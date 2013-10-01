@@ -11,9 +11,9 @@ import java.util.Observable;
 import java.util.Observer;
 
 import ltg.commons.SimpleRESTClient;
-import ltg.commons.ltg_handler.LTGEvent;
-import ltg.commons.ltg_handler.LTGEventHandler;
-import ltg.commons.ltg_handler.LTGEventListener;
+import ltg.commons.ltg_event_handler.LTGEvent;
+import ltg.commons.ltg_event_handler.SingleChatLTGEventHandler;
+import ltg.commons.ltg_event_handler.SingleChatLTGEventListener;
 import ltg.hg.model.HungerGamesModel;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -30,20 +30,20 @@ import com.mongodb.MongoClient;
 public class HungerGamesMasterBot implements Observer {
 	// Software components
 	private SimpleRESTClient src = new SimpleRESTClient();
-	private LTGEventHandler eh = null;
+	private SingleChatLTGEventHandler eh;
 	private DB db = null;
 
 	// Model data
 	private String run_id = null;
 	private HungerGamesModel hg = null;
 
-
+	
 	public HungerGamesMasterBot(String usernameAndPass, String groupChatID, String mongoDBId, String run_id) {
 
 		// ---------------------------------------
 		// Init event handler and connect to Mongo
 		// ---------------------------------------
-		eh =  new LTGEventHandler(usernameAndPass+"@ltg.evl.uic.edu", usernameAndPass, groupChatID+"@conference.ltg.evl.uic.edu");
+		eh =  new SingleChatLTGEventHandler(usernameAndPass+"@ltg.evl.uic.edu", usernameAndPass, groupChatID+"@conference.ltg.evl.uic.edu");
 		try {
 			db = new MongoClient("localhost").getDB(mongoDBId);
 		} catch (UnknownHostException e) {
@@ -62,7 +62,7 @@ public class HungerGamesMasterBot implements Observer {
 		// ----------------------------
 		//Register XMPP event listeners
 		// ----------------------------
-		eh.registerHandler("rfid_update", new LTGEventListener() {
+		eh.registerHandler("rfid_update", new SingleChatLTGEventListener() {
 			public void processEvent(LTGEvent e) {
 				hg.updateTagLocation(
 						e.getPayload().get("id").textValue(), 
@@ -72,14 +72,14 @@ public class HungerGamesMasterBot implements Observer {
 			}
 		});
 
-		eh.registerHandler("start_bout", new LTGEventListener() {
+		eh.registerHandler("start_bout", new SingleChatLTGEventListener() {
 			public void processEvent(LTGEvent e) {
 				hg.setCurrentState("foraging");
 				saveState();
 			}
 		});
 
-		eh.registerHandler("stop_bout", new LTGEventListener() {
+		eh.registerHandler("stop_bout", new SingleChatLTGEventListener() {
 			public void processEvent(LTGEvent e) {
 				hg.setCurrentState("completed");
 				saveState();
@@ -87,7 +87,7 @@ public class HungerGamesMasterBot implements Observer {
 		});
 		
 		
-		eh.registerHandler("reset_bout", new LTGEventListener() {
+		eh.registerHandler("reset_bout", new SingleChatLTGEventListener() {
 			public void processEvent(LTGEvent e) {
 				resetHGModel();
 				hg.setFullState(

@@ -11,7 +11,7 @@ public class RFIDTag {
 	// Instantaneous attributes
 	private String current_location_id = null;
 	private boolean is_alive = true;
-	private double remaining_penalyt_time = -1;
+	private double remaining_penalyt_time = 0;
 	
 	// Aggregate attributes
 	private double harvest = 0.0d;
@@ -155,7 +155,7 @@ public class RFIDTag {
 	public synchronized boolean updatePenaltyTime(double step) {
 		if (!is_alive)
 			remaining_penalyt_time -= step;
-		if (remaining_penalyt_time <= 0) {
+		if (remaining_penalyt_time < 0) {
 			resurrectTag();
 			return true;
 		}
