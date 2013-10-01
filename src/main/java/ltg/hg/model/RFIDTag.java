@@ -147,7 +147,7 @@ public class RFIDTag {
 	}
 	
 	
-	public synchronized boolean getIsAlive() {
+	public synchronized boolean isAlive() {
 		return this.is_alive;
 	}
 	

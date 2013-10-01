@@ -1,6 +1,9 @@
 package ltg.hg.model;
 
+import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Observable;
 
@@ -38,13 +41,16 @@ public class HungerGamesModel extends Observable {
 		// Initialized tags and patches with JSON coming from DB
 		tags = new HashMap<String, RFIDTag>();
 		patches = new HashMap<String, FoodPatch>();
-		for (JsonNode tag: roster)
+		for (JsonNode tag: roster) {
+			if (tag.get("teacher")!=null && tag.get("teacher").asBoolean())
+				continue;
 			tags.put(tag.get("_id").textValue(), new RFIDTag(
 					tag.get("_id").textValue(), 
 					tag.get("rfid_tag").textValue(), 
 					tag.get("color").textValue(), 
 					tag.get("color_label").textValue()
 					));		
+		}
 		for (Object patch: (BasicDBList) patchesConfiguration.get("patches")) 
 			patches.put(((BasicDBObject) patch).getString("patch_id"), new FoodPatch(
 					((BasicDBObject) patch).getString("patch_id"), 
@@ -53,8 +59,9 @@ public class HungerGamesModel extends Observable {
 					((BasicDBObject) patch).getString("risk_label"), 
 					((BasicDBObject) patch).getDouble("risk_percent_per_second")
 					));
+
 		predation_penalty_length_in_seconds = patchesConfiguration.getInt("predation_penalty_length_in_seconds");
-		
+
 	}
 
 
@@ -73,11 +80,14 @@ public class HungerGamesModel extends Observable {
 		public void run() {
 			while(!modelUpdater.isInterrupted()) {
 				if ( getCurrentState()!=null && getCurrentState().equals("foraging") ) {
+					Map<String, List<String>> notifications = new HashMap<>();
 					updateAggregateStatistics();
-					if (getCurrentHabitatConfiguration()!= null && getCurrentHabitatConfiguration().equals("predation"))
-						killTags();
+					if (getCurrentHabitatConfiguration()!= null && getCurrentHabitatConfiguration().equals("predation")) {
+						notifications.put("victims", killTags());
+						notifications.put("resurrections", resurrectTags());
+					}
 					HungerGamesModel.this.setChanged();
-					HungerGamesModel.this.notifyObservers();
+					HungerGamesModel.this.notifyObservers(notifications);
 				}
 				try {
 					sleep(UPDATE_CYCLE_IN_SECONDS*1000);
@@ -94,13 +104,36 @@ public class HungerGamesModel extends Observable {
 			tags.get(tag).updateHarvest(getCurrentYieldForTag(tag) * UPDATE_CYCLE_IN_SECONDS);
 			tags.get(tag).updateAverageQuality(bout_length_in_seconds, UPDATE_CYCLE_IN_SECONDS, getCurrentQualityForTag(tag));
 			tags.get(tag).updateAverageCompetition(bout_length_in_seconds, UPDATE_CYCLE_IN_SECONDS, getCurrentCompetitionForTag(tag));
-			//tags.get(tag).updateAverageRisk(bout_length_in_seconds, UPDATE_CYCLE_IN_SECONDS, getCurrentRiskForTag(tag));
+			tags.get(tag).updateAverageRisk(bout_length_in_seconds, UPDATE_CYCLE_IN_SECONDS, getCurrentRiskForTag(tag));
 		}	
 	}
+
+	private synchronized List<String> killTags() {
+		List<String> victims = new ArrayList<String>();
+		for (String tag: tags.keySet())
+			if (tags.get(tag).isAlive())
+				if ( KillTag(tag) )
+					victims.add(tag);
+		return victims;
+	}
 	
-	private synchronized void killTags() {
-		// TODO Auto-generated method stub
-		//predation_penalty_length_in_seconds;
+	private synchronized boolean KillTag(String tag) {
+		SecureRandom rng = new SecureRandom();
+		double random_0_1 = ( (double) rng.nextInt(101)) / 100.0d ;
+		if (random_0_1 < getCurrentRiskForTag(tag) ) {
+			tags.get(tag).killTag(predation_penalty_length_in_seconds);
+			return true;
+		}
+		return false;
+	}
+	
+	
+	private synchronized List<String> resurrectTags() {
+		List<String> resurrections = new ArrayList<String>();
+		for (String tag: tags.keySet())
+			if (tags.get(tag).updatePenaltyTime(UPDATE_CYCLE_IN_SECONDS))
+				resurrections.add(tag);
+		return resurrections;
 	}
 
 
@@ -242,76 +275,5 @@ public class HungerGamesModel extends Observable {
 
 		return stats;
 	}
-
-
-
-	//	public FoodPatch getPatch(String patchId) {
-	//	return patches.get(patchId);
-	//}
-	//
-	//
-	//public Collection<FoodPatch> getAllPatches() {
-	//	return patches.values();
-	//}
-	//
-	//
-	//public Collection<RFIDTag> getAllTags() {
-	//	return tags.values();
-	//}
-	//
-	//
-	//public void addPoints(String tagId, int points) {
-	//	tags.get(tagId).score += points;
-	//	System.out.println("Added " + points + " calories to " + tagId);
-	//}
-	//
-	//
-	//public synchronized List<RFIDTag> selectVictims() {
-	//	List<RFIDTag> victims = new ArrayList<RFIDTag>();
-	//	for (FoodPatch p : patches.values()) {
-	//		for (RFIDTag tag: p.kidsAtPatch) {
-	//			if (tag.alive && Math.random()<p.killProb) {
-	//				tag.alive = false;
-	//				victims.add(tag);
-	//			}
-	//		}
-	//	}
-	//	return victims;
-	//}
-	//
-	//
-	//public synchronized List<RFIDTag> updateVictims() {
-	//	List<RFIDTag> alives = new ArrayList<RFIDTag>();
-	//	for (FoodPatch p : patches.values()) {
-	//		for (RFIDTag tag: p.kidsAtPatch) {
-	//			if (!tag.alive) {
-	//				tag.remainingPBTime--;
-	//				if (tag.remainingPBTime<=0 && tag.currentLocation.equals("fg-den")) {
-	//					tag.remainingPBTime = penaltySec;
-	//					tag.alive = true;
-	//					alives.add(tag);
-	//				}
-	//			}
-	//		}
-	//	}
-	//	return alives;
-	//}
-	//
-	//
-
-
-	//	public void printScores() {
-	//		System.out.println("===Scores===");
-	//		String tag_ids = "|";
-	//		for (RFIDTag t : tags.values()) {
-	//			tag_ids += (t.id + "\t|");
-	//		}
-	//		System.out.println(tag_ids);
-	//		String scores = "|";
-	//		for (RFIDTag t : tags.values()) {
-	//			scores += (t.score + "      \t|");
-	//		}
-	//		System.out.println(scores);
-	//	}
 
 }
