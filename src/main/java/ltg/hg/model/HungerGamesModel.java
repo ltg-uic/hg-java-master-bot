@@ -42,14 +42,13 @@ public class HungerGamesModel extends Observable {
 		tags = new HashMap<String, RFIDTag>();
 		patches = new HashMap<String, FoodPatch>();
 		for (JsonNode tag: roster) {
-			if (tag.get("teacher")!=null && tag.get("teacher").asBoolean())
-				continue;
-			tags.put(tag.get("_id").textValue(), new RFIDTag(
-					tag.get("_id").textValue(), 
-					tag.get("rfid_tag").textValue(), 
-					tag.get("color").textValue(), 
-					tag.get("color_label").textValue()
-					));		
+			if (tag.get("_id")!=null && tag.get("rfid_tag")!=null && tag.get("color")!=null && tag.get("color_label")!=null) 
+				tags.put(tag.get("_id").textValue(), new RFIDTag(
+						tag.get("_id").textValue(), 
+						tag.get("rfid_tag").textValue(), 
+						tag.get("color").textValue(), 
+						tag.get("color_label").textValue()
+						));		
 		}
 		for (Object patch: (BasicDBList) patchesConfiguration.get("patches")) 
 			patches.put(((BasicDBObject) patch).getString("patch_id"), new FoodPatch(
@@ -116,7 +115,7 @@ public class HungerGamesModel extends Observable {
 					victims.add(tag);
 		return victims;
 	}
-	
+
 	private synchronized boolean KillTag(String tag) {
 		SecureRandom rng = new SecureRandom();
 		double random_0_1 = ( (double) rng.nextInt(101)) / 100.0d ;
@@ -126,8 +125,8 @@ public class HungerGamesModel extends Observable {
 		}
 		return false;
 	}
-	
-	
+
+
 	private synchronized List<String> resurrectTags() {
 		List<String> resurrections = new ArrayList<String>();
 		for (String tag: tags.keySet())
