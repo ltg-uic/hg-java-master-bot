@@ -59,7 +59,8 @@ public class RFIDTag {
 	
 	public synchronized void setCurrentLocation(String patch) {
 		this.current_location_id = patch;
-		arrivals_history.add(new Tuple<String, String>(Long.toString(System.currentTimeMillis()/1000), patch));
+		if (patch!=null)
+			arrivals_history.add(new Tuple<String, String>(Long.toString(System.currentTimeMillis()/1000), patch));
 	}
 	
 	public synchronized void resetCurrentLocation() {
