@@ -6,10 +6,10 @@ import java.util.List;
 public class FoodPatch {
 	
 	// Assigned attributes
+	private final String id;
 	private final double qulity_per_second;
 	private final double risk;
 	// unused so far
-	protected final String id;
 	protected final String quality_label;
 	protected final String risk_label;
 	
@@ -23,7 +23,7 @@ public class FoodPatch {
 		this.qulity_per_second = (double) richness;
 		this.risk_label = risk_label;
 		this.risk = risk;
-		this.tags_id_currently_at_patch = new ArrayList<String>();
+		this.tags_id_currently_at_patch = new ArrayList<>();
 	}
 
 
@@ -53,6 +53,10 @@ public class FoodPatch {
 	
 	public synchronized double getRisk() {
 		return risk;
+	}
+	
+	public synchronized String getId() {
+		return id;
 	}
 
 }

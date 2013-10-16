@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Observable;
 
+import ltg.commons.Tuple;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.mongodb.BasicDBList;
@@ -39,8 +41,8 @@ public class HungerGamesModel extends Observable {
 
 	private synchronized void resetGame(ArrayNode roster, BasicDBObject patchesConfiguration) {
 		// Initialized tags and patches with JSON coming from DB
-		tags = new HashMap<String, RFIDTag>();
-		patches = new HashMap<String, FoodPatch>();
+		tags = new HashMap<>();
+		patches = new HashMap<>();
 		for (JsonNode tag: roster) {
 			if (tag.get("_id")!=null && tag.get("rfid_tag")!=null && tag.get("color")!=null && tag.get("color_label")!=null) 
 				tags.put(tag.get("_id").textValue(), new RFIDTag(
@@ -108,7 +110,7 @@ public class HungerGamesModel extends Observable {
 	}
 
 	private synchronized List<String> killTags() {
-		List<String> victims = new ArrayList<String>();
+		List<String> victims = new ArrayList<>();
 		for (String tag: tags.keySet())
 			if (tags.get(tag).isAlive())
 				if ( KillTag(tag) )
@@ -128,7 +130,7 @@ public class HungerGamesModel extends Observable {
 
 
 	private synchronized List<String> resurrectTags() {
-		List<String> resurrections = new ArrayList<String>();
+		List<String> resurrections = new ArrayList<>();
 		for (String tag: tags.keySet())
 			if (tags.get(tag).updatePenaltyTime(UPDATE_CYCLE_IN_SECONDS))
 				resurrections.add(tag);
@@ -273,6 +275,22 @@ public class HungerGamesModel extends Observable {
 		.append("user_stats", user_stats);
 
 		return stats;
+	}
+
+
+	public synchronized BasicDBObject getPatchesCompetitionStats() {
+		BasicDBObject patch_stats = new BasicDBObject();
+		for (String p: patches.keySet())
+			patch_stats.append( patches.get(p).getId(), Integer.toString((int) patches.get(p).getCurrentCompetition()) );
+		return new BasicDBObject(Long.toString(System.currentTimeMillis()/1000), patch_stats);
+	}
+
+
+	public synchronized Map<String, List<Tuple<String, String>>> getTagsHistoriesStats() {
+		Map<String, List<Tuple<String, String>>> histories = new HashMap<>();
+		for (String t: tags.keySet())
+			histories.put(tags.get(t).id, tags.get(t).getArrivalsHistory());
+		return histories;
 	}
 
 }

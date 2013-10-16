@@ -1,5 +1,10 @@
 package ltg.hg.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import ltg.commons.Tuple;
+
 public class RFIDTag {
 
 	// Assigned attributes
@@ -22,6 +27,8 @@ public class RFIDTag {
 	private double avg_quality = 0.0d;
 	private double avg_competition = 0.0d;
 	private double avg_risk = 0.0d; 
+	// Additional aggregates
+	private List<Tuple<String, String>> arrivals_history;
 	
 	
 	
@@ -30,6 +37,7 @@ public class RFIDTag {
 		this.rfid_tag = rfid_tag;
 		this.color = color;
 		this.color_label = color_label;
+		this.arrivals_history = new ArrayList<>();
 	}
 	
 	
@@ -51,6 +59,7 @@ public class RFIDTag {
 	
 	public synchronized void setCurrentLocation(String patch) {
 		this.current_location_id = patch;
+		arrivals_history.add(new Tuple<String, String>(Long.toString(System.currentTimeMillis()/1000), patch));
 	}
 	
 	public synchronized void resetCurrentLocation() {
@@ -169,6 +178,11 @@ public class RFIDTag {
 	private synchronized void resurrectTag() {
 		this.is_alive = true;
 		this.remaining_penalyt_time = 0;
+	}
+
+
+	public synchronized List<Tuple<String, String>> getArrivalsHistory() {
+		return arrivals_history;
 	}
 	
 }

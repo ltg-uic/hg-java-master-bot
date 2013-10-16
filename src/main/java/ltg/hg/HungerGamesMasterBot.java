@@ -11,6 +11,7 @@ import java.util.Observable;
 import java.util.Observer;
 
 import ltg.commons.SimpleRESTClient;
+import ltg.commons.Tuple;
 import ltg.commons.ltg_event_handler.LTGEvent;
 import ltg.commons.ltg_event_handler.SingleChatLTGEventHandler;
 import ltg.commons.ltg_event_handler.SingleChatLTGEventListener;
@@ -19,6 +20,7 @@ import ltg.hg.model.HungerGamesModel;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
@@ -37,7 +39,7 @@ public class HungerGamesMasterBot implements Observer {
 	private String run_id = null;
 	private HungerGamesModel hg = null;
 
-	
+
 	public HungerGamesMasterBot(String usernameAndPass, String groupChatID, String mongoDBId, String run_id) {
 
 		// ---------------------------------------
@@ -85,8 +87,8 @@ public class HungerGamesMasterBot implements Observer {
 				saveState();
 			}
 		});
-		
-		
+
+
 		eh.registerHandler("reset_bout", new SingleChatLTGEventListener() {
 			public void processEvent(LTGEvent e) {
 				resetHGModel();
@@ -106,12 +108,14 @@ public class HungerGamesMasterBot implements Observer {
 		System.out.println("Hunger Games Master Bot started...");
 		eh.runSynchronously();
 	}
-	
-	
+
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public void update(Observable o, Object arg) {
 		saveStatsInDB(hg.getStats());
+		saveAdditionalPatchesStatsInDB(hg.getPatchesCompetitionStats());
+		saveAdditionalTagsStatsInDB(hg.getTagsHistoriesStats());
 		sendNotifications((Map<String, List<String>>) arg);
 	}
 
@@ -131,8 +135,8 @@ public class HungerGamesMasterBot implements Observer {
 		payload.put("id", v);
 		eh.generateEvent("kill_tag", payload);
 	}
-	
-	
+
+
 	private void sendResurrectTagEvent(String r) {
 		ObjectNode payload = JsonNodeFactory.instance.objectNode(); 
 		payload.put("id", r);
@@ -166,6 +170,7 @@ public class HungerGamesMasterBot implements Observer {
 		hg.addObserver(this);
 	}
 
+
 	private void loadState() {
 		BasicDBObject state = (BasicDBObject) db.getCollection("state").findOne(new BasicDBObject("run_id", run_id)).get("state");
 		hg.setFullState(
@@ -174,6 +179,7 @@ public class HungerGamesMasterBot implements Observer {
 				state.getString("current_state")
 				);
 	}
+
 
 	private void saveState() {
 		BasicDBObject tmp_state = new BasicDBObject()
@@ -184,15 +190,43 @@ public class HungerGamesMasterBot implements Observer {
 				new BasicDBObject("run_id", run_id).append("state", tmp_state) );
 	}
 
+
 	private void saveStatsInDB(BasicDBObject stats) {
 		stats.append("run_id", run_id)
-			.append("habitat_configuration", hg.getCurrentHabitatConfiguration())
-			.append("bout_id", hg.getCurrentBoutId());
+		.append("habitat_configuration", hg.getCurrentHabitatConfiguration())
+		.append("bout_id", hg.getCurrentBoutId());
 		BasicDBObject query = new BasicDBObject()
-				.append("run_id", run_id)
-				.append("habitat_configuration", hg.getCurrentHabitatConfiguration())
-				.append("bout_id", hg.getCurrentBoutId());
+		.append("run_id", run_id)
+		.append("habitat_configuration", hg.getCurrentHabitatConfiguration())
+		.append("bout_id", hg.getCurrentBoutId());
 		db.getCollection("statistics").update(query, stats, true, false);
+	}
+
+
+	private void saveAdditionalPatchesStatsInDB(BasicDBObject patchesCompetitionStats) {
+		BasicDBObject update = new BasicDBObject("$push", new BasicDBObject("boutData", patchesCompetitionStats));	
+		BasicDBObject query = new BasicDBObject()
+		.append("run_id", run_id)
+		.append("habitat_configuration", hg.getCurrentHabitatConfiguration())
+		.append("bout_id", hg.getCurrentBoutId());
+		db.getCollection("patches_statistics").update(query, update, true, false);
+	}
+
+
+	private void saveAdditionalTagsStatsInDB(Map<String, List<Tuple<String, String>>> tagsHistoriesStats) {
+		BasicDBList histories = new BasicDBList();
+		for (String t: tagsHistoriesStats.keySet()) {
+			BasicDBList tag_history = new BasicDBList();
+			for (Tuple<String, String> move: tagsHistoriesStats.get(t))
+				tag_history.add(new BasicDBObject(move.x, move.y));
+			histories.add(new BasicDBObject(t, tag_history));
+		}
+		BasicDBObject update = new BasicDBObject("$set", new BasicDBObject("histories", histories));
+		BasicDBObject query = new BasicDBObject()
+		.append("run_id", run_id)
+		.append("habitat_configuration", hg.getCurrentHabitatConfiguration())
+		.append("bout_id", hg.getCurrentBoutId());
+		db.getCollection("tags_statistics").update(query, update, true, false);
 	}
 
 
