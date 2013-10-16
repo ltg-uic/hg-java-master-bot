@@ -98,6 +98,7 @@ public class HungerGamesMasterBot implements Observer {
 						"ready"
 						);
 				saveState();
+				cleanDBData();
 			}
 		});
 
@@ -188,6 +189,20 @@ public class HungerGamesMasterBot implements Observer {
 		.append("current_state", hg.getCurrentState());
 		db.getCollection("state").update(new BasicDBObject("run_id", run_id), 
 				new BasicDBObject("run_id", run_id).append("state", tmp_state) );
+	}
+	
+	
+	private void cleanDBData() {
+		BasicDBObject query = new BasicDBObject()
+		.append("run_id", run_id)
+		.append("habitat_configuration", hg.getCurrentHabitatConfiguration())
+		.append("bout_id", hg.getCurrentBoutId());
+		// Clean statistics data
+		db.getCollection("statistics").remove(query);
+		// Clean patches_statistics data
+		db.getCollection("patches_statistics").remove(query);
+		// Clean tags_statistics data
+		db.getCollection("tags_statistics").remove(query);
 	}
 
 
