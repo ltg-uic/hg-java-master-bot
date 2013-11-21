@@ -2,6 +2,7 @@ package ltg.hg.model;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +27,6 @@ public class HungerGamesModel extends Observable {
 	private String current_bout_id = null;
 	private String current_state = null;
 	// Updater thread (component)
-	private static final int UPDATE_CYCLE_IN_SECONDS = 1;
 	private final HGModelUpdated modelUpdater = new HGModelUpdated("HGModelUpdater");
 
 
@@ -79,33 +79,36 @@ public class HungerGamesModel extends Observable {
 		// Updates the simulation and the stats while foraging 
 		// and notifies the master agent
 		public void run() {
+			long start_millis = new Date().getTime();
+			long killInterval = 0;
 			while(!modelUpdater.isInterrupted()) {
-				if ( getCurrentState()!=null && getCurrentState().equals("foraging") ) {
+				long dt = new Date().getTime() - start_millis;
+				if ( getCurrentState()!=null && getCurrentState().equals("foraging") ) {	
 					Map<String, List<String>> notifications = new HashMap<>();
-					updateAggregateStatistics();
+					updateAggregateStatistics(dt);
 					if (getCurrentHabitatConfiguration()!= null && getCurrentHabitatConfiguration().equals("predation")) {
-						notifications.put("victims", killTags());
-						notifications.put("resurrections", resurrectTags());
+						killInterval += dt;
+						if (killInterval >= 1000) {
+							killInterval -= 1000;
+							notifications.put("victims", killTags());
+						}
+						notifications.put("resurrections", resurrectTags(dt));
 					}
 					HungerGamesModel.this.setChanged();
 					HungerGamesModel.this.notifyObservers(notifications);
-				}
-				try {
-					sleep(UPDATE_CYCLE_IN_SECONDS*1000);
-				} catch (InterruptedException e) {
-					break;
 				}
 			}
 		}
 	}
 
-	private synchronized void updateAggregateStatistics() {
-		bout_length_in_seconds += UPDATE_CYCLE_IN_SECONDS;
+	private synchronized void updateAggregateStatistics(long dt) {
+		double dt_seconds = (double) dt / 1000.0d; 
+		bout_length_in_seconds += dt_seconds;
 		for (String tag: tags.keySet()) {
-			tags.get(tag).updateHarvest(getCurrentYieldForTag(tag) * UPDATE_CYCLE_IN_SECONDS);
-			tags.get(tag).updateAverageQuality(bout_length_in_seconds, UPDATE_CYCLE_IN_SECONDS, getCurrentQualityForTag(tag));
-			tags.get(tag).updateAverageCompetition(bout_length_in_seconds, UPDATE_CYCLE_IN_SECONDS, getCurrentCompetitionForTag(tag));
-			tags.get(tag).updateAverageRisk(bout_length_in_seconds, UPDATE_CYCLE_IN_SECONDS, getCurrentRiskForTag(tag));
+			tags.get(tag).updateHarvest(getCurrentYieldForTag(tag) * dt_seconds);
+			tags.get(tag).updateAverageQuality(bout_length_in_seconds, dt_seconds, getCurrentQualityForTag(tag));
+			tags.get(tag).updateAverageCompetition(bout_length_in_seconds, dt_seconds, getCurrentCompetitionForTag(tag));
+			tags.get(tag).updateAverageRisk(bout_length_in_seconds, dt_seconds, getCurrentRiskForTag(tag));
 		}	
 	}
 
@@ -113,12 +116,12 @@ public class HungerGamesModel extends Observable {
 		List<String> victims = new ArrayList<>();
 		for (String tag: tags.keySet())
 			if (tags.get(tag).isAlive())
-				if ( KillTag(tag) )
+				if ( killTag(tag) )
 					victims.add(tag);
 		return victims;
 	}
 
-	private synchronized boolean KillTag(String tag) {
+	private synchronized boolean killTag(String tag) {
 		SecureRandom rng = new SecureRandom();
 		double random_0_1 = ( (double) rng.nextInt(101)) / 100.0d ;
 		if (random_0_1 < getCurrentRiskForTag(tag) ) {
@@ -129,10 +132,11 @@ public class HungerGamesModel extends Observable {
 	}
 
 
-	private synchronized List<String> resurrectTags() {
+	private synchronized List<String> resurrectTags(long dt) {
+		double dt_seconds = (double) dt / 1000.0d;
 		List<String> resurrections = new ArrayList<>();
 		for (String tag: tags.keySet())
-			if (tags.get(tag).updatePenaltyTime(UPDATE_CYCLE_IN_SECONDS))
+			if (tags.get(tag).updatePenaltyTime(dt_seconds))
 				resurrections.add(tag);
 		return resurrections;
 	}
