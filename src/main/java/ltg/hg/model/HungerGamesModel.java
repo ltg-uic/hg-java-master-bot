@@ -79,11 +79,14 @@ public class HungerGamesModel extends Observable {
 		// Updates the simulation and the stats while foraging 
 		// and notifies the master agent
 		public void run() {
-			long start_millis = new Date().getTime();
+			long prev_millis = -1;
 			long killInterval = 0;
 			while(!modelUpdater.isInterrupted()) {
-				long dt = new Date().getTime() - start_millis;
-				if ( getCurrentState()!=null && getCurrentState().equals("foraging") ) {	
+				if ( getCurrentState()!=null && getCurrentState().equals("foraging") ) {
+					if (prev_millis == -1)
+						prev_millis = new Date().getTime();
+					long curr_millis = new Date().getTime();
+					long dt = curr_millis - prev_millis;
 					Map<String, List<String>> notifications = new HashMap<>();
 					updateAggregateStatistics(dt);
 					if (getCurrentHabitatConfiguration()!= null && getCurrentHabitatConfiguration().equals("predation")) {
@@ -96,7 +99,9 @@ public class HungerGamesModel extends Observable {
 					}
 					HungerGamesModel.this.setChanged();
 					HungerGamesModel.this.notifyObservers(notifications);
+					prev_millis = curr_millis;
 				}
+				
 			}
 		}
 	}
