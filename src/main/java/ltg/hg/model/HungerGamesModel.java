@@ -207,7 +207,8 @@ public class HungerGamesModel extends Observable {
 
 	public synchronized double getCurrentYieldForTag(String tag) {
 		String currentPatch = tags.get(tag).getCurrentLocation();
-		return currentPatch==null ? 0 : patches.get(currentPatch).getCurrentYield();
+		boolean isAlive = tags.get(tag).isAlive();
+		return (currentPatch==null || !isAlive) ? 0 : patches.get(currentPatch).getCurrentYield();
 	}
 
 	public synchronized double getCurrentRiskForTag(String tag) {
