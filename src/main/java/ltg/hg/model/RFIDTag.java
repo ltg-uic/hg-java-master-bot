@@ -178,7 +178,7 @@ public class RFIDTag {
 	
 	private synchronized void resurrectTag() {
 		this.is_alive = true;
-		this.remaining_penalyt_time = 0;
+		this.remaining_penalyt_time = 0;		
 	}
 
 

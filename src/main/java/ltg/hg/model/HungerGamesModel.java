@@ -2,7 +2,6 @@ package ltg.hg.model;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +19,7 @@ public class HungerGamesModel extends Observable {
 	// Model
 	private Map<String, RFIDTag> tags = null;
 	private Map<String, FoodPatch> patches = null;
+	private long update_interval = 1000;
 	private double predation_penalty_length_in_seconds = -1.0d;
 	private double bout_length_in_seconds = 0.0d;
 	// State
@@ -79,29 +79,23 @@ public class HungerGamesModel extends Observable {
 		// Updates the simulation and the stats while foraging 
 		// and notifies the master agent
 		public void run() {
-			long prev_millis = -1;
-			long killInterval = 0;
 			while(!modelUpdater.isInterrupted()) {
 				if ( getCurrentState()!=null && getCurrentState().equals("foraging") ) {
-					if (prev_millis == -1)
-						prev_millis = new Date().getTime();
-					long curr_millis = new Date().getTime();
-					long dt = curr_millis - prev_millis;
+					updateAggregateStatistics(update_interval);
 					Map<String, List<String>> notifications = new HashMap<>();
-					updateAggregateStatistics(dt);
 					if (getCurrentHabitatConfiguration()!= null && getCurrentHabitatConfiguration().equals("predation")) {
-						killInterval += dt;
-						if (killInterval >= 1000) {
-							killInterval -= 1000;
-							notifications.put("victims", killTags());
-						}
-						notifications.put("resurrections", resurrectTags(dt));
+						notifications.put("victims", killTags());
+						notifications.put("resurrections", resurrectTags(update_interval));
 					}
 					HungerGamesModel.this.setChanged();
 					HungerGamesModel.this.notifyObservers(notifications);
-					prev_millis = curr_millis;
+					try {
+						sleep(update_interval);
+					} catch (InterruptedException e) {
+						break;
+					}
 				}
-				
+
 			}
 		}
 	}
@@ -141,8 +135,9 @@ public class HungerGamesModel extends Observable {
 		double dt_seconds = (double) dt / 1000.0d;
 		List<String> resurrections = new ArrayList<>();
 		for (String tag: tags.keySet())
-			if (tags.get(tag).updatePenaltyTime(dt_seconds))
+			if (tags.get(tag).updatePenaltyTime(dt_seconds)) {
 				resurrections.add(tag);
+			}
 		return resurrections;
 	}
 
